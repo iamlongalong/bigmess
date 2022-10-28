@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 
 	"github.com/pkg/errors"
@@ -34,19 +33,19 @@ type Handler struct {
 	f HandleFunc
 }
 
-func (h *Handler) Handle(ctx context.Context, m *Message) {
+func (h *Handler) Handle(ctx *Context, m *Message) {
 	h.f(ctx, m)
 }
 
 type IHandler interface {
-	Handle(ctx context.Context, m *Message)
+	Handle(ctx *Context, m *Message)
 }
 
-type HandleFunc func(ctx context.Context, m *Message)
+type HandleFunc func(ctx *Context, m *Message)
 
 type IRouters interface {
 	Register(MessageCode, ...Handler) // 注册 handlers
-	Handle(context.Context, *Message) // 处理消息
+	Handle(*Context, *Message)        // 处理消息
 }
 
 // router 是用于做消息分发的，消息码
@@ -60,7 +59,7 @@ type WsRouter struct {
 	routes map[MessageCode][]Handler
 }
 
-func (r *WsRouter) Handle(ctx context.Context, m *Message) {
+func (r *WsRouter) Handle(ctx *Context, m *Message) {
 	defer func() { // 没有分组 middleware，recover 姑且写在这里
 		if err := recover(); err != nil {
 			log.Print(err) // 可以考虑添加堆栈信息等

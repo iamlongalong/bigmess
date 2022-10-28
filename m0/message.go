@@ -17,8 +17,12 @@ type Message struct {
 	Body []byte `json:"body"`
 }
 
-func DecodeMessage(d []byte) (error, *Message) {
+func DecodeMessage(d []byte) (*Message, error) {
 	msg := &Message{}
 
-	return json.Unmarshal(d, &msg), msg
+	return msg, json.Unmarshal(d, &msg)
+}
+
+func EncodeMessage(msg *Message) ([]byte, error) {
+	return json.Marshal(msg)
 }

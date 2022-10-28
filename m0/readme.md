@@ -74,4 +74,6 @@
 
 在实现消息分发时，先不做分组的实现了，相当于虽然不在程序中处理分组，一个 messageCode 就是一个路由。但这种方式存在了分组的潜力，将来可以加上分组的概念，比如增加 分组 Middleware 之类的能力。
 
-### 
+### 代码实现
+
+[bigmess 零号机](https://github.com/iamlongalong/bigmess/tree/main/m0)
