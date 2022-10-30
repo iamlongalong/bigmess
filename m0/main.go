@@ -21,8 +21,10 @@ func main() {
 	engine := gin.New()
 	engine.Use(gin.Logger(), gin.Recovery())
 
-	wsEngine := NewEngine()
-	wsEngine.Register(MessageCode("/fileroom/publish"), NewHandler(HandleFileRoomPub))
+	wsEngine := NewEngine(EngineOpt{})
+	wsEngine.Register(MessageCode("/publish"), &MiddleWareLog{}, NewHandler(HandlePubToRoom))
+	wsEngine.Register(MessageCode("/fileroom/join"), &MiddleWareLog{}, NewHandler(HandleJoinRoom))
+	wsEngine.Register(MessageCode("/fileroom/pub"), &MiddleWareLog{}, NewHandler(HandlePubMsg))
 
 	engine.GET("/ws", func(ctx *gin.Context) {
 		conn, err := dfupgrader.Upgrade(ctx.Writer, ctx.Request, nil)
@@ -31,13 +33,17 @@ func main() {
 			return
 		}
 
+		log.Printf("get new client : %s", ctx.Request.Host)
+
 		cli := NewClient(conn, wsEngine)
 
 		cli.Start()
 	})
 
 	// http.ListenAndServeTLS(":8081", "", "", engine)
-	if err := http.ListenAndServe(":8080", engine); err != nil {
+	addr := ":8080"
+	log.Printf("ws server is running at %s", addr)
+	if err := http.ListenAndServe(addr, engine); err != nil {
 		log.Fatalf("listen fail : %s", err)
 	}
 }

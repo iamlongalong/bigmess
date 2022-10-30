@@ -1,28 +1,54 @@
 package main
 
 import (
-	"context"
 	"log"
+	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
 func NewClient(conn *websocket.Conn, handler IHandler) *Client {
 	return &Client{
+		id: GetID(), // id 姑且用人名
+
 		msgHandler: handler,
-		readChan:   make(chan *Message, 20),
-		writeChan:  make(chan *Message, 20),
+		readChan:   make(chan IMessage, 20),
+		writeChan:  make(chan IMessage, 20),
 		conn:       conn,
+
+		closedHooks: make([]func(c *Client) error, 0),
 	}
 }
 
 type Client struct {
+	id   string
 	conn *websocket.Conn
 
-	readChan  chan *Message
-	writeChan chan *Message
+	readChan  chan IMessage
+	writeChan chan IMessage
+
+	vals sync.Map
 
 	msgHandler IHandler
+
+	closedHooks []func(c *Client) error
+}
+
+func (c *Client) AddClosedHook(hook func(c *Client) error) {
+	c.closedHooks = append(c.closedHooks, hook)
+}
+
+func (c *Client) Set(k, v interface{}) {
+	c.vals.Store(k, v)
+}
+
+func (c *Client) Get(k interface{}) (interface{}, bool) {
+	return c.vals.Load(k)
+}
+
+func (c *Client) ID() string {
+	return c.id
 }
 
 func (c *Client) Start() {
@@ -33,11 +59,9 @@ func (c *Client) Start() {
 
 func (c *Client) startHandle() {
 	for msg := range c.readChan {
-		ctx := &Context{
-			Context: context.Background(),
-			client:  c,
-			logger:  &Logger{},
-		}
+		logger := NewLogger(KV{Key: "clientid", Value: c.id}, KV{Key: "msgcode", Value: string(msg.MessageCode())})
+		ctx := NewContext(c, ContextOpt{logger: logger})
+
 		c.msgHandler.Handle(ctx, msg)
 	}
 }
@@ -48,8 +72,15 @@ func (c *Client) startRead() {
 	}()
 
 	for {
+		// err := c.conn.SetReadDeadline(time.Now().Add(time.Second * 30))
+		// if err != nil {
+		// 	log.Printf("set read deadline fail : %s", err)
+		// 	return
+		// }
+
 		msg, err := c.read()
 		if err != nil {
+			log.Printf("read message fail : %s", err)
 			return
 		}
 
@@ -63,9 +94,15 @@ func (c *Client) startWrite() {
 	}()
 
 	for msg := range c.writeChan { // send msg
-		b, err := EncodeMessage(msg)
+		b, err := msg.Encode()
 		if err != nil {
 			log.Printf("encode message fail : %s", err)
+		}
+
+		err = c.conn.SetWriteDeadline(time.Now().Add(time.Second * 30))
+		if err != nil {
+			log.Printf("set write deadline fail : %s", err)
+			return
 		}
 
 		err = c.conn.WriteMessage(websocket.BinaryMessage, b)
@@ -77,22 +114,30 @@ func (c *Client) startWrite() {
 	}
 }
 
-func (c *Client) Send(msg *Message) error {
+func (c *Client) Send(msg IMessage) error {
 	// TODO 先做一些检查之类的
 
 	c.writeChan <- msg
 	return nil
 }
 
-func (c *Client) read() (*Message, error) {
+func (c *Client) read() (IMessage, error) {
 	_, msgbytes, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, err
 	}
 
-	return DecodeMessage(msgbytes)
+	// 姑且用 json 的格式
+	return DecodeJsonMessage(msgbytes)
 }
 
 func (c *Client) Close() error {
-	return c.conn.Close()
+	errs := &BundleErr{}
+	for _, hook := range c.closedHooks {
+		errs.AddErr(hook(c))
+	}
+
+	errs.AddErr(c.conn.Close())
+
+	return errs.Bundle()
 }
