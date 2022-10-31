@@ -1,4 +1,4 @@
-module messshare/pkg/mapwatcher
+module messshare/pkg/rmap
 
 go 1.18
 

@@ -1,4 +1,4 @@
-package mapwatcher
+package rmap
 
 import (
 	"errors"

@@ -1,4 +1,4 @@
-package mapwatcher
+package rmap
 
 type IEvent interface {
 	Name() string
