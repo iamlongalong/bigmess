@@ -82,18 +82,12 @@ func (n *SubTreeNode) Add(subs []string, v interface{}) {
 	cn.Add(subs[1:], v)
 }
 
+// GetVals 获取包含 prefix 的值
 func (n *SubTreeNode) GetVals(keys []string) []interface{} {
+	v := make([]interface{}, 0)
+	v = append(v, n.Vals.Get()...)
+
 	if len(keys) == 0 {
-		v := make([]interface{}, 0)
-		v = append(v, n.Vals.Get()...)
-		if n.Children == nil {
-			return v
-		}
-
-		for _, sn := range n.Children {
-			v = append(v, sn.GetVals(nil)...)
-		}
-
 		return v
 	}
 
@@ -102,10 +96,10 @@ func (n *SubTreeNode) GetVals(keys []string) []interface{} {
 	n.mu.Unlock()
 
 	if cn == nil {
-		return nil
+		return v
 	}
 
-	return cn.GetVals(keys[1:])
+	return append(v, cn.GetVals(keys[1:])...)
 }
 
 func newSliceVals() *sliceVals {
