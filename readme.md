@@ -7,7 +7,7 @@
 零号机以及基本完成，内容可以参见 [消息系统进化史-零号机](https://blog.longalong.cn/posts/22_10_28_16_12_envolution_of_mess_system_first_launch.html) 
 
 
-有几个重点：
+有几个设计的重点：
 - 消息接入方式 (ws 作为入口的一种而不是全部)
 - session 管理方式 (面向session, 而非连接)
 - 消息分发方式 (接口分发、消息类型分发)
