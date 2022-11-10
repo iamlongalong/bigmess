@@ -123,9 +123,9 @@ type Option struct {
 type MapKeyOption string
 
 var (
-	MapKeyGet = "get"
-	MapKeySet = "set"
-	MapKeyDel = "del"
+	MapKeyGet MapKeyOption = "get"
+	MapKeySet MapKeyOption = "set"
+	MapKeyDel MapKeyOption = "del"
 )
 
 type MapEvent struct {
