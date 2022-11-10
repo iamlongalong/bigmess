@@ -44,7 +44,12 @@ func (m *ResponsiveMap) Watch(i IListener) {
 	m.eventhub.On(i)
 }
 
-func (m *ResponsiveMap) Del(k string) error {
+func (m *ResponsiveMap) Del(k string, opts ...Option) error {
+	var opt Option
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -53,13 +58,22 @@ func (m *ResponsiveMap) Del(k string) error {
 		return err
 	}
 
+	if opt.DisableNotice {
+		return nil
+	}
+
 	e := &MapEvent{Option: MapKeyOption(MapKeyDel), Key: k, OldVal: old, NewVal: nil}
 	m.eventhub.Process(e)
 
 	return nil
 }
 
-func (m *ResponsiveMap) Get(k string) (interface{}, error) {
+func (m *ResponsiveMap) Get(k string, opts ...Option) (interface{}, error) {
+	var opt Option
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -68,13 +82,22 @@ func (m *ResponsiveMap) Get(k string) (interface{}, error) {
 		return nil, err
 	}
 
+	if opt.DisableNotice {
+		return val, nil
+	}
+
 	e := &MapEvent{Option: MapKeyOption(MapKeyGet), Key: k, OldVal: val, NewVal: nil}
 	m.eventhub.Process(e)
 
 	return val, nil
 }
 
-func (m *ResponsiveMap) Set(k string, v interface{}) error {
+func (m *ResponsiveMap) Set(k string, v interface{}, opts ...Option) error {
+	var opt Option
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
+
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -83,10 +106,18 @@ func (m *ResponsiveMap) Set(k string, v interface{}) error {
 		return err
 	}
 
+	if opt.DisableNotice {
+		return nil
+	}
+
 	e := &MapEvent{Option: MapKeyOption(MapKeySet), Key: k, OldVal: old, NewVal: v}
 	m.eventhub.Process(e)
 
 	return nil
+}
+
+type Option struct {
+	DisableNotice bool
 }
 
 type MapKeyOption string
